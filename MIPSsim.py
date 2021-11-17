@@ -1,9 +1,7 @@
 '''On my honor, I have neither given nor receiven any unauthorised aid in this assignment'''
 import math as m
 import sys
-import os
-import queue as q
-from typing import List
+
 def twoscomp(num):
     l = list(num)
     if l[0] == "1":
@@ -16,6 +14,10 @@ def twoscomp(num):
         return -(int(''.join(l), 2)+1)
     else:
         return int(num, 2)
+
+def srl(num, shift):
+    return (num & 0xffffffff) >> shift # By computing num & 0xffffffff we get the 32-bit binary represation 
+                                       # of the number without changing it. Then, we compute the arithmetic shift.
 
 def enqueue(list, elem):
     count = 0
@@ -50,16 +52,9 @@ def checkOrder(issueOrder, buf1):
             if issueOrder > i.order: res = False
     return res
 
-def getFU(type,subtype):
-    if type == 1: return "ALU1"
-    if type == 2 and subtype == 4: return "MUL1"
-    if type == 2 or type == 3: return "ALU2"
-
-
 class Instruction1:
     def __init__(self,inst):
         self.name2 = ""
-        self.stage = ""
         self.pc = 0
         self.res = 0
         self.order = 0
@@ -146,7 +141,6 @@ class Instruction2:
         self.name2 = ""
         self.res = 0
         self.id = 0
-        self.stage = ""
         self.consumed = False
         self.isBranch = False
         self.type=2
@@ -196,7 +190,6 @@ class Instruction3:
         self.id = 0
         self.order = 0
         self.res = 0
-        self.stage = ""
         self.consumed = False
         self.subtype = 5
         self.isBranch = False
@@ -224,18 +217,10 @@ class Instruction3:
 
 class Register:
 
-    def __init__(self,num,value,readable=True, writable=True, stage="", status=""):
+    def __init__(self,num,value,readable=True):
         self.num = num
         self.value = value
         self.readable = readable
-        self.writable = writable
-        self.stage = stage
-        self.status = status
-    
-    '''def __LE__(self,other):
-        if ((self.stage == "IF" or self.stage == "IS" ) and (other.stage == "IF" or other.stage == "")): return True
-        elif (self.stage == "IS") and (other != "IF")'''
-
 
 class fetchUnit:
 
@@ -244,40 +229,17 @@ class fetchUnit:
         self.full = bufFull
         self.wait = wait
         self.exec = exec
-
-class FunctionalUnit:
-
-    def __init__(self, name="",busy=0, op="", Fi=None, Fj=None, Fk = None, Qj=None, Qk=None, Rj=None, Rk=None) :
-        self.name = name
-        self.busy = busy
-        self.op = op
-        self.fi= Fi
-        self.fj = Fj
-        self.fk = Fk
-        self.qj = Qj
-        self.qk = Qk
-        self.rj = Rj
-        self.rk = Rk
-
     
-
-def srl(num, shift):
-    return (num & 0xffffffff) >> shift # By computing num & 0xffffffff we get the 32-bit binary represation 
-                                       # of the number without changing it. Then, we compute the arithmetic shift.
 
 if __name__ == "__main__":
 
     input = open(sys.argv[1], "r")
-    #sim = sys.stdout
-    sim = open("mysim.txt", "w")
+    sim = open("simulation.txt", "w")
     buf1,buf2,buf3,buf4,buf5,buf6,buf7,buf8,buf9,buf10 = [None for i in range(8)],[None for i in range(2)],[None for i in range(2)],[None for i in range(2)],[None],[None],[None],[None],[None],[None]
     fetch = fetchUnit()
     pc = 260
-    readList = []
     writeList =[]
-    readIds = []
     writeIds = []
-    nextWrite = []
     linelist = input.readlines()
     registers = []
     issueOrder = 0
@@ -285,15 +247,10 @@ if __name__ == "__main__":
     for i in range(32):
         registers.append(Register(i,0)) 
     stop = False
-    i, j, k, l = 0, 0, 0, 0
+    i, j, k = 0, 0, 0
     while (linelist[j][:6] != "000110"):
         j += 1
     NUM_INSTRUCTIONS = j+1
-    units = []
-    units_names = ["IS", "ALU1", "ALU2", "MUL1", "MUL2", "MUL3", "MEM", "WB"]
-    dict = { "IS" : 0, "ALU1" : 1, "ALU2" : 2, "MUL1" : 3, "MUL2" : 4, "MUL3" : 5, "MEM" : 6, "WB" : 7}
-    for a in units_names: units.append(FunctionalUnit(name=a))
-    results = ["" for a in range(32)]
     firstdata = j*4 + 264
     instructions = [None] * (j+1)
     initialdata = [0] * (len(linelist)-j-1)
@@ -314,7 +271,6 @@ if __name__ == "__main__":
     c=0
     cycle=1
     while (stop is False):
-        b3consumed, b4consumed, b5consumed, b6consumed, b7consumed, b8consumed, b9consumed, b10consumed = False,False,False,False,False,False,False, False
         for elem in buf1: 
             if elem is not None: elem.consumed = False
         for elem in buf2: 
@@ -338,7 +294,6 @@ if __name__ == "__main__":
         
         
         prevfetch = fetch.stalled
-        #prevwrite = writeList
         fetch.exec = ""
         if fetch.stalled is True and fetch.wait != "":
             if (checkOrder(issueOrder,buf1) and (fetch.wait.subtype == 0 and fetch.wait.rs not in writeList and fetch.wait.rs not in issueWrite and registers[dis[c].rs].readable)
@@ -346,18 +301,12 @@ if __name__ == "__main__":
                 or (fetch.wait.subtype == -1) or (fetch.wait.subtype == -2)): 
                 fetch.exec = fetch.wait
                 fetch.wait = ""
-                
                 changepc, registers, data, stop = fetch.exec.exec(registers, firstdata, data, stop, pc)
                 fetch.stalled = False
-                #c = (pc-260)//4
-                
-
+            
         '''
         INSTRUCTION FETCH
-        
         '''
-        fetchRead = []
-        fetchWrite = []
         
         for i in range(4):
             if (prevfetch is False and fetch.full is False):
@@ -372,14 +321,12 @@ if __name__ == "__main__":
                         dis[c].order = issueOrder
                         fetch.exec = dis[c]
                         fetch.stalled = False
-                        #c += 1
                         c = (changepc-260)//4
                         break
                     elif (dis[c].subtype == -1):
                         fetch.exec = dis[c]
                         changepc = dis[c].addr
                         fetch.stalled = False
-                        #c += 1
                         c = (changepc-260)//4
                         break
                     else:
@@ -387,7 +334,6 @@ if __name__ == "__main__":
                             fetch.stalled = False
                             fetch.exec = dis[c]
                             changepc, registers, data, stop = fetch.exec.exec(registers, firstdata, data, stop, pc)
-                            #c += 1
                             c = (changepc-260)//4
                             break
                         else:
@@ -400,7 +346,6 @@ if __name__ == "__main__":
                         fetch.full = True 
                         break
                     dis[c].consumed = True
-                    dis[c].stage = "IF"
                     dis[c].order = issueOrder
                     issueOrder += 1
                     buf1 = enqueue(buf1,dis[c])
@@ -410,14 +355,13 @@ if __name__ == "__main__":
                         registers[dis[c].dest].readable = False
                     elif (dis[c].type == 3):
                         registers[dis[c].dest].readable = False
-                    #c += 1
                     pc += 4
                     c = (pc-260)//4
-
 
         '''
         INSTRUCTION ISSUE
         '''
+
         issueRead = []
         issueWrite = []
         index = 0
@@ -426,14 +370,11 @@ if __name__ == "__main__":
             elem = buf1[index]
             if elem is None: break
             #check the operands to see possible hazards
-            FU = getFU(elem.type,elem.subtype)
             if (elem.type == 1):
                 if (elem.consumed is False and isFull(buf2) is False and elem.base not in writeList and elem.base not in issueWrite and elem.rt not in writeList and elem.rt not in issueRead and elem.rt not in issueWrite):
                     elem.id = id
                     buf2 = enqueue(buf2,elem)
                     buf1 = dequeue(buf1,index)
-                    readList.append(elem.base)
-                    readIds.append(id)
                     writeList.append(elem.rt)
                     writeIds.append(id)
                     elem.consumed = True
@@ -446,11 +387,7 @@ if __name__ == "__main__":
                     elem.id = id
                     buf3 = enqueue(buf3,elem)
                     buf1 = dequeue(buf1,index)
-                    readList.append(elem.src1)
                     writeList.append(elem.dest)
-                    readList.append(elem.src2)
-                    readIds.append(id)
-                    readIds.append(id)
                     writeIds.append(id)
                     elem.consumed = True
                     index -= 1
@@ -463,24 +400,21 @@ if __name__ == "__main__":
                     elem.id = id
                     buf4 = enqueue(buf4,elem)
                     buf1 = dequeue(buf1,index)
-                    readList.append(elem.src1)
                     writeList.append(elem.dest)
-                    readList.append(elem.src2)
-                    readIds.append(id)
-                    readIds.append(id)
                     writeIds.append(id)
                     elem.consumed = True
                     index -= 1
                     id += 1
+                issueRead.append(elem.src1)
+                issueRead.append(elem.src2)
+                issueWrite.append(elem.dest)
             elif (elem.type == 3):
                 if (elem.consumed is False and isFull(buf3) is False and elem.dest not in writeList and elem.dest not in issueWrite and elem.dest not in issueRead
                 and elem.src not in writeList and elem.src not in issueWrite):
                     elem.id = id
                     buf3 = enqueue(buf3,elem)
                     buf1 = dequeue(buf1,index)
-                    readList.append(elem.src)
                     writeList.append(elem.dest)
-                    readIds.append(id)
                     writeIds.append(id)
                     elem.consumed = True
                     id += 1
@@ -489,18 +423,15 @@ if __name__ == "__main__":
                 issueWrite.append(elem.dest)
             index += 1
 
-        #writeList = nextWrite
-
-        if (len(buf2) != 0 and buf2[0] is not None):
+        if (isEmpty(buf2) is False):
             if (buf2[0].consumed is False):
                 buf2[0].consumed = True
-                #buf2[0].res = buf2[0].exec(pc,registers,data,stop)
                 if (isFull(buf5)): buf5.append(buf2[0])
                 else: buf5 = enqueue(buf5, buf2[0])
                 buf2 = dequeue(buf2, 0)
         
-        if (len(buf3) != 0 and buf3[0] is not None):
-            if (buf3[0].consumed is False and b3consumed is False):
+        if (isEmpty(buf3) is False):
+            if (buf3[0].consumed is False):
                 b3consumed = True
                 buf3[0].consumed = True
                 buf3[0].res = buf3[0].exec(registers)
@@ -509,7 +440,7 @@ if __name__ == "__main__":
                 else: buf6 = enqueue(buf6, buf3[0])
                 buf3 = dequeue(buf3,0)
         
-        if (len(buf4) != 0 and buf4[0] is not None and b4consumed is False):
+        if (isEmpty(buf4) is False):
             if (buf4[0].consumed is False):
                 b4consumed = True
                 buf4[0].consumed = True
@@ -518,12 +449,11 @@ if __name__ == "__main__":
                 else: buf7 = enqueue(buf7,buf4[0])
                 buf4 = dequeue(buf4,0)
         
-        if (len(buf5) != 0 and buf5[0] is not None and b5consumed is False):
+        if (isEmpty(buf5) is False):
             if (buf5[0].consumed is False):
                 b5consumed = True
                 buf5[0].consumed = True
                 if (buf5[0].subtype == 2):
-                    #buf5[0].name = ""
                     data = buf5[0].exec(registers,firstdata,data,stop,pc)
                 elif (buf5[0].subtype == 3):
                     buf5[0].name2 = "[%d, R%s]" % (data[(registers[buf5[0].base].value+buf5[0].offset-firstdata)//4], buf5[0].rt)
@@ -531,7 +461,7 @@ if __name__ == "__main__":
                 else: buf8 = enqueue(buf8,buf5[0])
                 buf5 = dequeue(buf5,0)
         
-        if (len(buf6) != 0 and buf6[0] is not None and b6consumed is False):
+        if (isEmpty(buf6) is False):
             if (buf6[0].consumed is False):
                 b6consumed = True
                 buf6[0].consumed = True
@@ -543,9 +473,8 @@ if __name__ == "__main__":
                 registers[buf6[0].dest].readable = True
                 if len(buf6) == 1: buf6[0] = None
                 elif len(buf6) == 2: buf6.pop(0)
-                #pc += 4
 
-        if (len(buf7) != 0 and buf7[0] is not None and b7consumed is False):
+        if (isEmpty(buf7) is False):
             if (buf7[0].consumed is False):
                 b7consumed = True
                 buf7[0].consumed = True
@@ -553,21 +482,19 @@ if __name__ == "__main__":
                 else: buf9 = enqueue(buf9,buf7[0])
                 buf7 = dequeue(buf7,0)
         
-        if (len(buf8) != 0 and buf8[0] is not None and b8consumed is False):
+        if (isEmpty(buf8) is False):
             if (buf8[0].consumed is False):
                 b8consumed = True
                 buf8[0].consumed = True
                 if (buf8[0].subtype == 3):
                     registers[buf8[0].rt].value = data[(registers[buf8[0].base].value+buf8[0].offset-firstdata)//4]
-                    #registers = buf8[0].exec
                 mapping = writeIds.index(buf8[0].id)
                 writeIds = writeIds[:mapping] + writeIds[mapping+1:]
                 writeList = writeList[:mapping] + writeList[mapping+1:]
                 registers[buf8[0].rt].readable = True
                 buf8 = dequeue(buf8,0)
-                #pc += 4
 
-        if (len(buf9) != 0 and buf9[0] is not None and b9consumed is False):
+        if (isEmpty(buf9) is False):
             if (buf9[0].consumed is False):
                 b9consumed = True
                 buf9[0].consumed = True
@@ -576,32 +503,21 @@ if __name__ == "__main__":
                 else: buf10 = enqueue(buf10,buf9[0])
                 buf9 = dequeue(buf9,0)
         
-        if (len(buf10) != 0 and buf10[0] is not None and b10consumed is False):
+        if (isEmpty(buf10) is False):
             if (buf10[0].consumed is False):
                 b10consumed = True
                 buf10[0].consumed = True
                 registers[buf10[0].dest].value = buf10[0].res
-                '''mapping = [n for n, x in enumerate(readIds) if x == buf10[0].id]
-                readList = readList[:mapping[0]] + readList[mapping[0]+1:]
-                readIds = readIds[:mapping[0]] + readIds[mapping[0]+1:]'''
                 mapping = writeIds.index(buf10[0].id)
                 writeIds = writeIds[:mapping] + writeIds[mapping+1:]
                 writeList = writeList[:mapping] + writeList[mapping+1:]
                 registers[buf10[0].dest].readable = True
                 buf10 = dequeue(buf10,0)
-                #pc += 4
 
-        '''if fetch.exec != "":
-            if fetch.exec.subtype != -1:
-                fetch.stalled = False
-                pc, registers, data, stop = fetch.exec.exec(registers, firstdata, data, stop, pc)
-                c = (pc-260)//4'''
         if changepc != 0:
             pc, changepc = changepc, 0
-            c =(pc-260)//4
+            c = (pc-260)//4
         
-
-        l += 1
         if (fetch.wait == ""): w = ""
         else: w = fetch.wait.name
         if (fetch.exec == ""): e = ""
@@ -678,10 +594,6 @@ if __name__ == "__main__":
             sim.write("\n")
         cycle += 1
         fetch.exec= ""
-
-    index = len(instructions)
-    k = 0
-    sim.seek(sim.tell() - 1, os.SEEK_SET)
     sim.write('')
     sim.close()
     input.close()
