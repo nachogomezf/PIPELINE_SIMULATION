@@ -2,7 +2,6 @@
 import math as m
 import sys
 import os
-import queue
 def twoscomp(num):
     l = list(num)
     if l[0] == "1":
@@ -23,20 +22,12 @@ def srl(num, shift):
 
 if __name__ == "__main__":
 
-    input = open(sys.argv[1], "r")
-    sim = open("sample.txt", "w+")
-    pc = 260
-	
-    buf1 = queue.PriorityQueue(8)
-    buf2 = queue.Queue(2)
-    buf3 = queue.Queue(2)
-    buf4 = queue.Queue(2)
-    buf5 = queue.Queue(1)
-    buf6 = queue.Queue(1)
-    buf7 = queue.Queue(1)
-    buf8 = queue.Queue(1)
-    buf9 = queue.Queue(1)
-    buf10 = queue.Queue(1)
+    try: input = open(sys.argv[1], "r")
+    except: print("Error loading input file")
+    try: sim = open("sim.txt", "w+")
+    except: print("Error opening/creating simulator file")
+    try: dis = open("dis.txt", "w+")
+    except: print("Error opening/creating disassembly file")
     pc = 260
     linelist = input.readlines()
     registers = [0]*32
