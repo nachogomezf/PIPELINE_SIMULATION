@@ -38,6 +38,7 @@ def isFull(list):
         if elem is not None:
             count += 1
     return (count == len(list))
+    
 def isEmpty(list):
     count = 0
     for elem in list:
@@ -432,7 +433,6 @@ if __name__ == "__main__":
         
         if (isEmpty(buf3) is False):
             if (buf3[0].consumed is False):
-                b3consumed = True
                 buf3[0].consumed = True
                 buf3[0].res = buf3[0].exec(registers)
                 buf3[0].name2 = "[%d, R%s]" % (buf3[0].res, buf3[0].dest)
@@ -442,7 +442,6 @@ if __name__ == "__main__":
         
         if (isEmpty(buf4) is False):
             if (buf4[0].consumed is False):
-                b4consumed = True
                 buf4[0].consumed = True
                 buf4[0].res = buf4[0].exec(registers)
                 if (isFull(buf7)): buf7.append(buf4[0])
@@ -451,7 +450,6 @@ if __name__ == "__main__":
         
         if (isEmpty(buf5) is False):
             if (buf5[0].consumed is False):
-                b5consumed = True
                 buf5[0].consumed = True
                 if (buf5[0].subtype == 2):
                     data = buf5[0].exec(registers,firstdata,data,stop,pc)
@@ -463,7 +461,6 @@ if __name__ == "__main__":
         
         if (isEmpty(buf6) is False):
             if (buf6[0].consumed is False):
-                b6consumed = True
                 buf6[0].consumed = True
                 registers[buf6[0].dest].value = buf6[0].res
                 mapping = writeIds.index(buf6[0].id)
@@ -484,7 +481,6 @@ if __name__ == "__main__":
         
         if (isEmpty(buf8) is False):
             if (buf8[0].consumed is False):
-                b8consumed = True
                 buf8[0].consumed = True
                 if (buf8[0].subtype == 3):
                     registers[buf8[0].rt].value = data[(registers[buf8[0].base].value+buf8[0].offset-firstdata)//4]
@@ -496,7 +492,6 @@ if __name__ == "__main__":
 
         if (isEmpty(buf9) is False):
             if (buf9[0].consumed is False):
-                b9consumed = True
                 buf9[0].consumed = True
                 buf9[0].name2 = "[%d, R%s]" % (buf9[0].res, buf9[0].dest)
                 if (isFull(buf10)): buf10.append(buf9[0])
@@ -505,7 +500,6 @@ if __name__ == "__main__":
         
         if (isEmpty(buf10) is False):
             if (buf10[0].consumed is False):
-                b10consumed = True
                 buf10[0].consumed = True
                 registers[buf10[0].dest].value = buf10[0].res
                 mapping = writeIds.index(buf10[0].id)
